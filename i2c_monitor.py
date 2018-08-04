@@ -124,29 +124,38 @@ def katakana(text):
 
 	return text_changed
 
+def get_my_github_events():
+    dt_now = datetime.datetime.now()
+    today_start=pytz.utc.localize(datetime.datetime(dt_now.year, dt_now.month, dt_now.day - 1, 0, 0, 0))
+    url=u"https://api.github.com/users/wasuken/events"
+    js_text=requests.get(url).text
+    data=json.loads(js_text)
+    return  [x for x in data if json_in_datetime(x) > today_start]
 def main():
     # Main program block
 
   # Initialise display
   lcd_init()
-
+  cnt=1
+  result=get_my_github_events()
   while True:
-    dt_now = datetime.datetime.now()
-    today_start=pytz.utc.localize(datetime.datetime(dt_now.year, dt_now.month, dt_now.day - 3, 0, 0, 0))
-
-    url=u"https://api.github.com/users/wasuken/events"
-    js_text=requests.get(url).text
-    data = json.loads(js_text)
-    result = [x for x in data if json_in_datetime(x) > today_start]
+    if cnt % 60 == 0:
+        result = get_my_github_events()
+        cnt=1
     for x in result[0:3]:
-      lcd_string(json_in_print_text(x)[0].split('/')[1],LCD_LINE_1)
-      lcd_string(json_in_print_text(x)[1],LCD_LINE_2)
-      time.sleep(3)
+        repo=json_in_print_text(x)[0].split('/')
+        print(repo)
+        if len(repo) > 1:
+            repo=repo[1]
+        else:
+            continue
+        lcd_string(repo,LCD_LINE_1)
+        lcd_string(json_in_print_text(x)[1],LCD_LINE_2)
+        time.sleep(1)
 
-    wiringpi.digitalWrite( led_pin, 1 )
-    time.sleep(1)
-    wiringpi.digitalWrite( led_pin, 0 )
-    time.sleep(1)
+    wiringpi.digitalWrite( led_pin, cnt % 2 )
+    time.sleep(2)
+    cnt+=1
 
 if __name__ == '__main__':
   try:
